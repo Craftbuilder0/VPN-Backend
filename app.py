@@ -6,6 +6,7 @@ from vpn_manager.wireguard import manage_wireguard
 import os
 import subprocess
 from dotenv import load_dotenv
+import platform  # <-- Add this import
 
 load_dotenv()
 
@@ -42,11 +43,14 @@ def connect_vpn():
         data = request.json
         vpn_type = data.get("type")
         config = data.get("config")
+        is_windows = platform.system() == "Windows"
 
         if vpn_type == "openvpn":
+            # For OpenVPN, you might not need to change anything if it doesn't use sudo.
             result = manage_openvpn(config, action="connect")
         elif vpn_type == "wireguard":
-            result = manage_wireguard(config, action="connect")
+            # Pass use_sudo flag based on OS
+            result = manage_wireguard(config, action="connect", use_sudo=not is_windows)
         else:
             return jsonify({"error": "Invalid VPN type"}), 400
 
@@ -61,11 +65,12 @@ def connect_vpn():
 def disconnect_vpn():
     try:
         vpn_type = request.json.get("type")
+        is_windows = platform.system() == "Windows"
 
         if vpn_type == "openvpn":
             result = manage_openvpn(action="disconnect")
         elif vpn_type == "wireguard":
-            result = manage_wireguard(action="disconnect")
+            result = manage_wireguard(action="disconnect", use_sudo=not is_windows)
         else:
             return jsonify({"error": "Invalid VPN type"}), 400
 
